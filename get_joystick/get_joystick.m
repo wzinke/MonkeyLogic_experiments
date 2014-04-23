@@ -73,22 +73,28 @@ pull_pause = 6000;    % this is the minimum time passed before a trial starts af
 %% Assign stimulus items
 % assign items specified in the condition file to meaningful names
 % numbers correspond to the number following TaskObject# in the condition file
-JoyZero     =   1;    % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
-StimInitial =   2;    % first item state
-StimChange  =   3;    % item after contrast change
+JoyZero     =  1;     % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
+StimInitial =  2;     % first item state
+StimChange  =  3;     % item after contrast change
 
 %% initialize trial variables
-on_track   =   0;    % use this flag to indicate occurrences of errors in the trial
+on_track   =   0;     % use this flag to indicate occurrences of errors in the trial
 rt         = NaN;
 RelTime    = NaN;
 RewTime    = NaN;
 WaitStart  = NaN;
 TrialZero  = NaN;
+TstartEff  = NaN;
+TRelEff    = NaN;
 DimmOnTime = NaN;
+DimmEff    = NaN;
+FixOn      = NaN;
+FixOff     = NaN;
+
 TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = NaN;
 TrialRecord.Tend(  TrialRecord.CurrentTrialNumber) = NaN;
 
-% determine number of reward pulses (incremental reward scheme)
+%% determine number of reward pulses (incremental reward scheme)
 if(~isfield(TrialRecord, 'CorrCount'))
     TrialRecord.CorrCount = 0;
 end
@@ -135,17 +141,13 @@ end
 
 % split the stimulus change/dimming times across conditions to allow for some control
 num_cnd = length(TrialRecord.ConditionsThisBlock);
-itvtm   = linspace(dimmMin, dimmMax,num_cnd+1);
-
-Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
 ccnd    = TrialRecord.CurrentCondition;
 
-%  Dimmvec = itvtm(ccnd) : dimmStep : itvtm(ccnd+1)-dimmStep; % possible stimulus change times
+itvtm   = linspace(dimmMin, dimmMax,num_cnd+1);
+Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
 Dimmvec = Dimmvec(Dimmvec >= itvtm(ccnd) & Dimmvec < itvtm(ccnd+1)); % possible stimulus change times for current condition
-cDimm   = Dimmvec(randi(length(Dimmvec)));        % stimulus change time used for the current trial
 
-% correct for offsets of the joystick analogue output
-reposition_object(JoyZero, Jpos0x, Jpos0y);
+cDimm   = Dimmvec(randi(length(Dimmvec)));        % stimulus change time used for the current trial
 
 %%%%###########################################%%%%
 %%%%########  Ensure joystick release   #######%%%%
@@ -155,8 +157,10 @@ reposition_object(JoyZero, Jpos0x, Jpos0y);
 % and this trial is aborted either after this period passed or the lever is released.
 % This trial restart is necessary to avoid ML crashes due too long trial durations.
 
+reposition_object(JoyZero, Jpos0x, Jpos0y);  % correct for offsets of the joystick analogue output
+
 if(~isfield(TrialRecord, 'Jreleased'))
-    TrialRecord.Jreleased = 1;   % track the joystick state across trials
+    TrialRecord.Jreleased = 1;   % track the joystick state accross trials
 end
 
 % check if lever remains released
@@ -171,6 +175,7 @@ if(~JoyRel | TrialRecord.Jreleased == 0)
         if(JoyRel)
             eventmarker(39); % lever released
         end
+
     else % make sure that joystick is not pulled for a sufficient long time before starting a new trial
         [JoyRel PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, pull_pause);
 
@@ -252,24 +257,33 @@ if(on_track)
             goodmonkey(rew_dur, 'NumReward', 1, 'PauseTime', rew_gap);
             eventmarker(96);   % reward end
        end
+
         [JoyRel ReleaseTime] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, DimmTime-trialtime);  % wait before dimming
-        % get the computer time for the lever release as well
-        dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
-        currentDateTime1 = datenum(dstr);
-        TRelEff = mod(currentDateTime1 ,1) *24*60*60*1000;
     end
 
 %% #### Wait Dimming #### %%
     % do not accept early responses
     if(JoyRel && on_track)
         eventmarker(39);  % lever released
-        RelTime  = trialtime - TrialZero;
+        TRelEff = mod(currentDateTime1 ,1) *24*60*60*1000;
+
+        % get the computer time for the lever release as well
+        dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
+        currentDateTime1 = datenum(dstr);
+
+        RelTime = trialtime - TrialZero;
+
         TrialRecord.Jreleased = 1;
         ErrCode  = 5;
         on_track = 0;
         StimOffTime = toggleobject(StimInitial , 'EventMarker', 36,'Status', 'off');
     elseif(on_track)
         DimmOnTime = toggleobject([StimInitial StimChange], 'EventMarker', 37);  % dimm target
+        DimmOnTime = DimmOnTime - TrialZero;
+
+        dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
+        currentDateTime1 = datenum(dstr);
+        DimmEff = mod(currentDateTime1 ,1) *24*60*60*1000;
     end
 
 %% #### Wait Response #### %%
@@ -277,9 +291,6 @@ if(on_track)
     if(on_track)
         [JoyRel ReleaseTime] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, max_resp);
         % get the computer time for the lever release as well
-        dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
-        currentDateTime1 = datenum(dstr);
-        TRelEff = mod(currentDateTime1 ,1) *24*60*60*1000;
 
         if(~JoyRel)
             ErrCode  = 1; % no response
@@ -288,6 +299,11 @@ if(on_track)
         else
             eventmarker(39);  % lever released
             RelTime = trialtime - TrialZero;
+
+            dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
+            currentDateTime1 = datenum(dstr);
+            TRelEff = mod(currentDateTime1 ,1) *24*60*60*1000;
+
             TrialRecord.Jreleased = 1;
 
             if(ReleaseTime < wait_resp)
@@ -327,6 +343,8 @@ if(on_track)
         cITI = cITI + time_out;   % add a punish time to the current ITI
     end
 
+    FixOff = StimOffTime - TrialZero;
+
     % get the computer time for the trial end as well
     dstr = datestr(now,'dd-mm-yyyy HH:MM:SS.FFF');
     currentDateTime1 = datenum(dstr);
@@ -345,22 +363,23 @@ if(on_track)
     if(ErrCode ~= 8 && ErrCode ~= 9)
     %% write trial table
     % keep redundant information to check data and have some information as back up to reconstruct trials
-    % Further, this text file should give fast and easy access to the behavioural performance. It is in a
+    % Further, this text file should give fast and easy access to the behavioral performance. It is in a
     % format that allows to be read into R with the read.table command (use 'header=TRUE' option).
-        cdt = datestr(now,'yyyy_mm_dd');
+        cdt   = datestr(now,'yyyy_mm_dd');
         tblnm = fullfile(tblpath, [cNHP,'_', cPRDGM,'_', cdt, '.dat']);
 
         if(exist(tblnm) ~= 2 )  % create the table file
             tblptr = fopen(tblnm, 'w');
-            fprintf(tblptr,'Date  Subject  Experiment  TFixOn  Tstart  TRel  Tend  ITIeff  TrialNo  BlockNo  CondNo  Result  WaitStart  ITI  NumRew  RT  TrialZero  FixOn  DimmEff  DimmIntend  ReleaseTime  RewTime\n');
+            fprintf(tblptr,'Date  Subject  Experiment  TFixOn  Tstart  TRel  Tend  ITIeff  TrialNo  BlockNo  CondNo  Result  WaitStart  ITI  NumRew  RT  TrialZero  FixOn  FixOff  DimmEff  DimmOn  DimmIntend  ReleaseTime  RewTime\n');
         else
             tblptr = fopen(tblnm, 'a');
         end
 
-        fprintf(tblptr,'%s  %s  %s %.0f %.0f %.0f %.0f %6d  %6d  %4d  %4d  %4d  %8d  %8d  %8d  %8d  %8d  %8d  %8d   %8d  %6d  %6d \n',...
-                cdt, cNHP, cPRDGM, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), TstartEff, TRelEff, TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, TrialRecord.CurrentTrialNumber, ...
+        fprintf(tblptr,'%s  %s  %s  %.0f  %.0f  %.0f  %.0f  %6d  %6d  %4d  %4d  %4d  %8d  %8d  %8d  %8d  %8d  %8d  %8d  %.0f  %8d  %8d  %6d  %6d \n',...
+                cdt, cNHP, cPRDGM, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), TstartEff, TRelEff, ...
+                TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, TrialRecord.CurrentTrialNumber,  ...
                 TrialRecord.CurrentBlock, ccnd, ErrCode, WaitStart, cITI, rew_Npulse, ...
-                rt, TrialZero, FixOn, DimmOnTime, cDimm, RelTime, RewTime );
+                rt, TrialZero, FixOn, FixOff, DimmEff, DimmOnTime, cDimm, RelTime, RewTime );
         fclose(tblptr);
     end
 end
