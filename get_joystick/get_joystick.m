@@ -267,6 +267,7 @@ if(on_track)
     % do not accept early responses
     if(JoyRel && on_track)
         eventmarker(39);  % lever released
+
         evobj.CodeTimes = trialtime;
         % get the computer time for the lever release as well
         TRelEff = toc(uint64(1));
@@ -295,6 +296,7 @@ if(on_track)
             StimOffTime = toggleobject(StimChange, 'EventMarker', 36,'Status', 'off');
         else
             eventmarker(39);  % lever released
+
             evobj.CodeTimes = trialtime;
             RelTime = evobj.CodeTimes(1) - TrialZero;
 
