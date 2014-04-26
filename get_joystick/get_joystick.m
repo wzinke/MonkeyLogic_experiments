@@ -32,8 +32,8 @@ eventmarker(15);  %  start pre-trial
 scriptversion='20140425'   % update this information to control if MonkeyLogic is really using an updated timing file
 
 %% Define Trial Variables
-tblpath =  pwd;  % path to directory for trial table files
-cNHP   = 'NHP';        % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
+tblpath = pwd;  % path to directory for trial table files
+cNHP   = 'NHP_name';        % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
 cPRDGM = 'get_joystick';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
