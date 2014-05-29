@@ -1,26 +1,27 @@
-% get_joystick (timing script)
+% change_release (timing script)
 %
 % Initial timing file for teaching the NHP to use a joystick in order to get a reward.
 %
-% A stimulus is shown and changes after a random interval in the range of <dimmMin> and <dimmMax> . The monkey has to pull the joystick within a specified period of <wait_start>.
-% If <PullRew> is set to 1, a reward will be given for pulling the lever. After a variable time interval
-% the stimulus is changing (as defined in the condition file) and
-% the monkey has to release the joystick to receive another reward (incremental scheme according to number
-% of hits or for consecutive correct trials).
+% This timing file is prepared to run with the GitHub version of 
+% MonkeyLogic (https://github.com/Dfreedmanlab/MonkeyLogic_stable). It is possible that it will cause
+% errors when used with previous versions of MonkeyLogic. 
 %
-% Be aware: the current implementation expects a reactive behaviour to the onset of the target object
-% to start a trial by pressing the joystick, hold it for the course of the trial and release it as
-% a stimulus change. This will later on result in the requirement to fixate and pull simultaneous
-% There are alternative approaches that might be more desired, for example by waiting for a joystick
-%  and show the target object as result of the press, and again wait for a release as task related
-% first the press is required later on, followed by fixation.
-% Another option might be to first show the target object, wait for a fixation to start the trial,
-% a brief lever press as task related response (press+release within a short time window).
+% This task utilizes two Stimuli. One of them signals the animal not to pull the joystick (NoGo Stimulus),
+% whereas the other stimulus (Go Stimulus) requires a pull. 
+% The combination of both stimuli results in 3 task conditions:
+%     1: Go only   - Only one stimulus is shown and the joystick needs to be pulled to get a reward
+%     2: NoGo only - Only the NoGO stimulus is shown the animal has to withhold any responses to get a reward.
+%     3: NoGo/Go   - First, the NoGO stimulus is shown, and after a variable time interval changes to the Go stimulus.
+%                    The animal has to pull the joystick as response to the Go stimulus to receive a reward.
 %
-% Also be aware, that this timing file is made to be used with a analogue joystick as response device.
+% The NoGo stimulus is shown for a random interval in the range of <dimmMin> and <dimmMax>.  The animal has to 
+% pull the joystick within a time window between <wait_resp> and <max_resp> following the onset of the Go stimulus
+% to receive a reward.
+% 
+% Be aware, that this timing file is made to be used with a analogue joystick as response device.
 % The use of an analogue joystick changes the calls and logic of the eyejoytrack function.
 %
-% wolf zinke, Feb. 2014
+% wolf zinke, May. 2014
 
 %% ### ToDo: ### %%
     % use the gen function in the condition file to create the target item and make its features (size, luminance) editable.
@@ -35,19 +36,18 @@ cNHP   = 'NHP_name';      % MLConfig.SubjectName    - MLConfig could not be acce
 cPRDGM = 'get_joystick';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'JoyRelRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep','PullRew', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'JoyRelRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
 
 % reward times
-PullRew    =     0;    % Give reward for pulling the joystick
 rew_dur    =    50;    % duration of reward pulse (not to be changed!)
 rew_gap    =   200;    % gap between two reward pulses (period = rew_dur+rew_gap) (not to be changed!)
 rew_lag    =   100;    % introduce a brief delay prior reward
 RewIncConsecutive = 1; % increase reward for subsequent correct trials. Otherwise reward will increase with the number of hits
 
-% set center position of joystick
+% set centre position of joystick
 Jpos0x     =   0;      % zero position X
 Jpos0y     =   0;      % zero position Y
 JoyPullRad = 1.5;      % threshold to detect a elevation of the joystick
@@ -66,24 +66,26 @@ ITIstep    =   100;
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
 
-%  mu = (minval + maxval)/2
-%  max_range = exp(-(minval/mu));
-%  min_range = exp(-(maxval/mu));
-%  R = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
+% define ITI according to a shifted and truncated exponential distribution
+%  mu = (minITI + maxITI)/2
+%  max_range = exp(-(minITI/mu));
+%  min_range = exp(-(maxITI/mu));
+%  cITI = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
 
 % joystick response parameters
 wait_resp  =  100;     % valid response only accepted after this initial period
 max_resp   = 1500;     % maximal time accepted for a valid responses
 
-time_out   = 1000;     % set wait period for bad monkeys (do not combine with jittered ITIs)
+time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
 pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
+wait_rel   = 1000;     % wait for release of joystick after response
 
 %% Assign stimulus items
 % assign items specified in the condition file to meaningful names
 % numbers correspond to the number following TaskObject# in the condition file
-JoyZero     =  1;      % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
-StimNoGo =  2;      % first item state
-StimGo  =  3;      % item after contrast change
+JoyZero  =  1;         % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
+StimNoGo =  2;         % first item state
+StimGo   =  3;         % item after contrast change
 
 %% initialize trial variables
 on_track   =   0;      % use this flag to indicate occurrences of errors in the trial
@@ -149,14 +151,15 @@ end
 
 % split the stimulus change/dimming times across conditions to allow for some control
 num_cnd = length(unique(TrialRecord.ConditionsThisBlock)); % This variable is behaving strange and not as I understand its role. The use of unique ensures that it shows the actual number of conditions used in this block!
-ccnd    = mod(TrialRecord.CurrentCondition-1,3) == 0
+ccnd    = 1+mod(TrialRecord.CurrentCondition-1,3) == 0;    % task conditions 1:3
+dcnd    = ceil(TrialRecord.CurrentCondition/3);            % change duration block
 
 if(ccnd > 1) % The first conditions just shows the Go-Stimulus
-    itvtm   = linspace(dimmMin, dimmMax, num_cnd/3+1);
+    itvtm   = linspace(dimmMin, dimmMax, (num_cnd/3)+1);
     Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
-    Dimmvec = Dimmvec(Dimmvec >= itvtm(TrialRecord.CurrentCondition/3) & Dimmvec < itvtm(TrialRecord.CurrentCondition/3+1)); % possible stimulus change times for current condition
+    Dimmvec = Dimmvec(Dimmvec >= itvtm(dcnd) & Dimmvec < itvtm(dcnd+1)); % possible stimulus change times for current condition
 
-    cDimm   = Dimmvec(randi(length(Dimmvec)));        % stimulus change time used for the current trial
+    cDimm   = Dimmvec(randi(length(Dimmvec)));  % stimulus change time used for the current trial
 else
     cDimm = 0;
 end
@@ -177,7 +180,7 @@ end
 reposition_object(JoyZero, Jpos0x, Jpos0y);  % correct for offsets of the joystick analogue output
 
 if(~isfield(TrialRecord, 'Jreleased'))
-    TrialRecord.Jreleased = 1;   % track the joystick state accross trials
+    TrialRecord.Jreleased = 1;   % track the joystick state across trials
 end
 
 % check if lever remains released
@@ -225,119 +228,120 @@ if(on_track)
         TrialRecord.NextTrial = -1;
     end
 
-if(ccnd > 1) % The first conditions just shows the Go-Stimulus, so skip this step
-
-    eventmarker(1);   % trial started
+	if(ccnd > 1) % The first conditions just shows the Go-Stimulus, so skip this step
 %% #### Onset NoGo Stimulus #### %%
-    FixOn = toggleobject(StimNoGo, 'EventMarker', 35, 'Status', 'on');
+		NoGoOn = toggleobject(StimNoGo, 'EventMarker', [1, 35], 'Status', 'on');
 
-    % get the computer time for the trial start as well
-    TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = toc(uint64(1));
-    TstartEff = TrialRecord.Tstart(TrialRecord.CurrentTrialNumber);
+		% get the computer time for the trial start as well
+		TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = toc(uint64(1));
+		TstartEff = TrialRecord.Tstart(TrialRecord.CurrentTrialNumber);
 
-    TrialZero = FixOn;
+		FixOn     = NoGoOn;
+		TrialZero = NoGoOn;
 
-    [JoyPull ReleaseTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, cDimm);  % wait before stim change (hope no time passed since onset)
+		[JoyHold ReleaseTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, cDimm);  % wait before stim change (hope no time passed since onset)
 
-%% #### Wait Dimming #### %%
-    % do not accept early responses
-    if(JoyPull && on_track)
-        eventmarker(38);  % lever pressed
+%% #### Wait Change #### %%
+		% do not accept early responses
+		if(~JoyHold)
+			eventmarker(38);  % lever pressed
 
-        evobj.CodeTimes = trialtime;
-        % get the computer time for the lever release as well
-        TRelEff = toc(uint64(1));
-        RelTime =  evobj.CodeTimes(1) - TrialZero;
+			% get the computer time for the lever release as well
+			TPullEfflEff = toc(uint64(1));
+			RelTime =  trialtime - TrialZero;
 
-        TrialRecord.Jreleased = 1;
-        ErrCode  = 5;
-        on_track = 0;
-        StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
-    elseif(on_track)
-        DimmOnTime = toggleobject([StimNoGo StimGo], 'EventMarker', 37);  % dimm target
-        DimmOnTime = DimmOnTime - TrialZero;
-
-        DimmEff = toc(uint64(1));
-    end
-end
-
+			TrialRecord.Jreleased = 0;
+			ErrCode  = 5;
+			on_track = 0;
+			StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
+		end
+	end  % if(ccnd > 1)
 
 %% #### Onset Go Stimulus #### %%
     % wait for release of joystick
     if(on_track & ccnd ~= 2) % skip the NoGo trial
 
         if(ccnd == 1)
-            DimmOnTime = toggleobject([StimNoGo StimGo], 'EventMarker', 37);  % dimm target
+            GoOn = toggleobject([StimNoGo StimGo], 'EventMarker', [37]);  % show Go stimulus
             StartChngWait = toc(uint64(1));
         else
-            DimmOnTime = toggleobject(StimGo , 'EventMarker', 35,'Status', 'on');
+            GoOn = toggleobject(StimGo , 'EventMarker', [37, 35, 1],'Status', 'on');
             StartChngWait = toc(uint64(1));
 
-            eventmarker(37);  % lever pressed
             % get the computer time for the trial start as well
             TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = toc(uint64(1));
             TstartEff = TrialRecord.Tstart(TrialRecord.CurrentTrialNumber);
-            FixOn     = DimmOnTime;
+            FixOn     = GoOn;
             TrialZero = FixOn;
         end
 
-        [JoyPull PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, max_resp);
+        [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, max_resp);
         EndChngWait = toc(uint64(1));
-        % get the computer time for the lever release as well
 
-        if(~JoyPull)
+        if(JoyHold)
             ErrCode  = 1; % no response
             on_track = 0;
             StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
         else
             eventmarker(38);  % lever pressed
 
-            evobj.CodeTimes = trialtime;
-            PullTime = evobj.CodeTimes(1) - TrialZero;
+            PullTime = trialtime - TrialZero;
 
-            TPullEff = toc(uint64(1));
+            TPullEff = EndChngWait;
 
-            TrialRecord.Jreleased = 1;
+            TrialRecord.Jreleased = 0;
 
             if(PullTime < wait_resp)
                 ErrCode  = 5; % early response
                 on_track = 0;
                 StimOffTime = toggleobject(StimGo , 'EventMarker', 36,'Status', 'off');
-            end
+			else
+				rt = PullTime % double check this one (use text table and compare to RelTime-DimmOnTime!)
+				rt = 1000 * (EndChngWait - StartChngWait) % double check this one (use text table and compare to RelTime-DimmOnTime!)
+			end
         end
-    end
+    end  % if(on_track & ccnd ~= 2)
+	
 
 %% #### Trial End #### %%
-    %eventmarker([2 17]);  % end of trial
-    eventmarker(2);   % end of trial
-    eventmarker(17);  % start post trial
-
+   eventmarker([2 17]);  % end of trial
+ 
     % finalize Trial
     if(on_track)  % correct trials
         ErrCode = 0;
         trialerror(0);  % correct
-        rt = PullTime % double check this one (use text table and compare to RelTime-DimmOnTime!)
-        rt = EndChngWait - StartChngWait % double check this one (use text table and compare to RelTime-DimmOnTime!)
+		
         TrialRecord.CorrCount = TrialRecord.CorrCount + 1;
 
         eventmarker(19);   % start pause
         idle(rew_lag);
-        %eventmarker([96 20]);
-        eventmarker(20);   % end pause
+			
+		if(ccnd == 2)
+			StimOffTime = toggleobject(StimNoGo, 'EventMarker', 36,'Status', 'off');
+		else
+			StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
+		end
+        eventmarker([96 20]);
 
-        StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
-        eventmarker(96);    % reward start
-        evobj.CodeTimes = trialtime;
-
+		RewEff = toc(uint64(1));
         goodmonkey(rew_dur, 'NumReward', rew_Npulse, 'PauseTime', rew_gap);
         eventmarker(96); % use this event twice to get an estimate of the reward duration, i.e. number of pulses.
-        RewTime = evobj.CodeTimes(1) - TrialZero;
+        RewTime = trialtime - TrialZero;
+		
+		if(TrialRecord.Jreleased == 0)
+			[JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, wait_rel);
+			if(JoyRel)
+				eventmarker(39); % lever released
+				EndChngWait = toc(uint64(1));
+				TrialRecord.Jreleased == 1;
+			end
+		end
     else   % error occurred
         trialerror(ErrCode);
         rew_Npulse = NaN;
         TrialRecord.CorrCount = 0;
         cITI = cITI + time_out;   % add a punish time to the current ITI
-    end
+    end  %  if(on_track)
 
     FixOff = StimOffTime - TrialZero;
 
@@ -348,9 +352,7 @@ end
 %%%%##########   Stop the Trial now   #########%%%%
 %%%%###########################################%%%%
     % set ITI
-    %eventmarker([18 9]); % start ITI
-    eventmarker(18); % end post trial
-    eventmarker(9);  % start ITI
+    eventmarker([18 9]); % end post trial / start ITI
 
     if(TrialRecord.CurrentTrialNumber > 1)
         ITIeff = TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) - TrialRecord.Tend(TrialRecord.CurrentTrialNumber-1);
