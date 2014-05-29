@@ -59,9 +59,9 @@ dimmMax    = 2000;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
 
 % inter trial times (replace this with a more sophisticated function)
-minITI  =   500;       % minimum range of the time period that separates subsequent presentation of the stimulus/trials
-maxITI  =  3000;       % maximum range of the time period that separates subsequent presentation of the stimulus/trials
-ITIstep =   100;
+minITI     =   500;    % minimum time period between two subsequent stimulus presentation
+maxITI     =  3000;    % maximum time period between two subsequent stimulus presentation
+ITIstep    =   100;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
@@ -268,17 +268,21 @@ end
 
         if(ccnd == 1)
             DimmOnTime = toggleobject([StimNoGo StimGo], 'EventMarker', 37);  % dimm target
+            StartChngWait = toc(uint64(1));
         else
             DimmOnTime = toggleobject(StimGo , 'EventMarker', 35,'Status', 'on');
+            StartChngWait = toc(uint64(1));
+
             eventmarker(37);  % lever pressed
             % get the computer time for the trial start as well
             TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = toc(uint64(1));
             TstartEff = TrialRecord.Tstart(TrialRecord.CurrentTrialNumber);
-            FixOn = DimmOnTime;
+            FixOn     = DimmOnTime;
             TrialZero = FixOn;
         end
 
-        [JoyPull ReleaseTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, max_resp);
+        [JoyPull PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, max_resp);
+        EndChngWait = toc(uint64(1));
         % get the computer time for the lever release as well
 
         if(~JoyPull)
@@ -295,7 +299,7 @@ end
 
             TrialRecord.Jreleased = 1;
 
-            if(ReleaseTime < wait_resp)
+            if(PullTime < wait_resp)
                 ErrCode  = 5; % early response
                 on_track = 0;
                 StimOffTime = toggleobject(StimGo , 'EventMarker', 36,'Status', 'off');
@@ -311,8 +315,9 @@ end
     % finalize Trial
     if(on_track)  % correct trials
         ErrCode = 0;
-        trialerror(0); % correct
-        rt = ReleaseTime;  % double check this one (use text table and compare to RelTime-DimmOnTime!)
+        trialerror(0);  % correct
+        rt = PullTime % double check this one (use text table and compare to RelTime-DimmOnTime!)
+        rt = EndChngWait - StartChngWait % double check this one (use text table and compare to RelTime-DimmOnTime!)
         TrialRecord.CorrCount = TrialRecord.CorrCount + 1;
 
         eventmarker(19);   % start pause
