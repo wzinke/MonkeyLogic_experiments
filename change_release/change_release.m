@@ -54,13 +54,13 @@ JoyPullRad = 1.5;      % threshold to detect a elevation of the joystick
 JoyRelRad  =   1;      % threshold to detect the release of the joystick
 
 % dimming parameters
-dimmMin    =  250;     % minimum time to dimming
+dimmMin    =  750;     % minimum time to dimming
 dimmMax    = 1500;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
 
 % inter trial times (replace this with a more sophisticated function)
 minITI     =   500;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  3000;    % maximum time period between two subsequent stimulus presentation
+maxITI     =  1000;    % maximum time period between two subsequent stimulus presentation
 ITIstep    =   100;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
@@ -84,8 +84,8 @@ wait_rel   = 1000;     % wait for release of joystick after response
 % assign items specified in the condition file to meaningful names
 % numbers correspond to the number following TaskObject# in the condition file
 JoyZero  =  1;         % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
-StimNoGo =  3;         % stimulus that indicates no response
 StimGo   =  2;         % stimulus that requires a response
+StimNoGo =  3;         % stimulus that indicates no response
 
 %% initialize trial variables
 on_track   =   0;  % use this flag to indicate occurrences of errors in the trial
@@ -151,7 +151,7 @@ end
 
 % split the stimulus change/dimming times across conditions to allow for some control
 num_cnd = length(unique(TrialRecord.ConditionsThisBlock)); % This variable is behaving strange and not as I understand its role. The use of unique ensures that it shows the actual number of conditions used in this block!
-ccnd    = 1+mod(TrialRecord.CurrentCondition-1,3) == 0;    % task conditions 1:3
+ccnd    = 1+mod(TrialRecord.CurrentCondition-1,3);         % task conditions 1:3
 dcnd    = ceil(TrialRecord.CurrentCondition/3);            % change duration block
 
 if(ccnd > 1) % The first conditions just shows the Go-Stimulus
@@ -184,10 +184,10 @@ if(~isfield(TrialRecord, 'Jreleased'))
 end
 
 % check if lever remains released
-[JoyRel PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, 100); % this introduces a 100 ms interval
+[JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, 100); % this introduces a 100 ms interval
 
-if(~JoyRel | TrialRecord.Jreleased == 0)
-    if(~JoyRel) % wait for release
+if(~JoyHold | TrialRecord.Jreleased == 0)
+    if(~JoyHold) % wait for release
         TrialRecord.Jreleased = 0;
         [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, pull_pause);
 
@@ -196,9 +196,9 @@ if(~JoyRel | TrialRecord.Jreleased == 0)
         end
 
     else % make sure that joystick is not pulled for a sufficient long time before starting a new trial
-        [JoyRel PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, pull_pause);
+        [JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, pull_pause);
 
-        if(JoyRel)
+        if(JoyHold)
             TrialRecord.Jreleased = 1;
         end
     end
@@ -281,8 +281,6 @@ if(on_track)
         else
             eventmarker(38);  % lever pressed
 
-            PullTime = trialtime - TrialZero;
-
             TPullEff = EndChngWait;
 
             TrialRecord.Jreleased = 0;
@@ -292,12 +290,10 @@ if(on_track)
                 on_track = 0;
                 StimOffTime = toggleobject(StimGo , 'EventMarker', 36,'Status', 'off');
             else
-                rt = PullTime % double check this one (use text table and compare to RelTime-DimmOnTime!)
-                rt = 1000 * (EndChngWait - StartChngWait) % double check this one (use text table and compare to RelTime-DimmOnTime!)
+                rt = 1000 * (EndChngWait - StartChngWait); % double check this one (use text table and compare to RelTime-DimmOnTime!)
             end
         end
     end  % if(on_track & ccnd ~= 2)
-
 
 %% #### Trial End #### %%
    eventmarker([2 17]);  % end of trial
@@ -315,7 +311,7 @@ if(on_track)
         if(ccnd == 2)
             StimOffTime = toggleobject(StimNoGo, 'EventMarker', 36,'Status', 'off');
         else
-            StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
+            StimOffTime = toggleobject([StimNoGo, StimGo],   'EventMarker', 36,'Status', 'off');
         end
         eventmarker([96 20]);
 
@@ -324,14 +320,6 @@ if(on_track)
         eventmarker(96); % use this event twice to get an estimate of the reward duration, i.e. number of pulses.
         RewTime = trialtime - TrialZero;
 
-        if(TrialRecord.Jreleased == 0)
-            [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, wait_rel);
-            if(JoyRel)
-                eventmarker(39); % lever released
-                EndChngWait = toc(uint64(1));
-                TrialRecord.Jreleased == 1;
-            end
-        end
     else   % error occurred
         trialerror(ErrCode);
         rew_Npulse = NaN;
@@ -355,6 +343,15 @@ if(on_track)
     else
         ITIeff = NaN;
     end
+	
+	if(TrialRecord.Jreleased == 0)
+		[JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, wait_rel);
+		if(JoyRel)
+			eventmarker(39); % lever released
+			EndChngWait = toc(uint64(1));
+			TrialRecord.Jreleased == 1;
+		end
+	end
 
     set_iti(cITI);
     TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cITI/1000;
