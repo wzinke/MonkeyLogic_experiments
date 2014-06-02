@@ -165,7 +165,7 @@ cDimm   = Dimmvec(randi(length(Dimmvec)))        % stimulus change time used for
 reposition_object(JoyZero, Jpos0x, Jpos0y);  % correct for offsets of the joystick analogue output
 
 if(~isfield(TrialRecord, 'Jreleased'))
-    TrialRecord.Jreleased = 1;   % track the joystick state accross trials
+    TrialRecord.Jreleased = 1;   % track the joystick state across trials
 end
 
 % check if lever remains released

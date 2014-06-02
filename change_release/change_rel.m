@@ -32,11 +32,11 @@ eventmarker(15);  %  start pre-trial
 
 %% Define Trial Variables
 tblpath = pwd;  % path to directory for trial table files
-cNHP   = 'NHP_name';      % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
-cPRDGM = 'get_joystick';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
+cNHP   = 'I_34';      % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
+cPRDGM = 'change_release';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'JoyRelRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
@@ -51,7 +51,6 @@ RewIncConsecutive = 1; % increase reward for subsequent correct trials. Otherwis
 Jpos0x     =   0;      % zero position X
 Jpos0y     =   0;      % zero position Y
 JoyPullRad = 1.5;      % threshold to detect a elevation of the joystick
-JoyRelRad  =   1;      % threshold to detect the release of the joystick
 
 % dimming parameters
 dimmMin    =  500;     % minimum time to dimming
@@ -61,8 +60,8 @@ NoGoWait   = 1500;     % show the NoGo item for this amount of time
 
 % inter trial times (replace this with a more sophisticated function)
 minITI     =   500;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  1000;    % maximum time period between two subsequent stimulus presentation
-ITIstep    =   100;
+maxITI     =  2500;    % maximum time period between two subsequent stimulus presentation
+ITIstep    =   10;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
@@ -163,10 +162,12 @@ if(ccnd == 1) % The first conditions just shows the Go-Stimulus
 elseif(ccnd == 2)
 	cDimm = NoGoWait;
 elseif(ccnd == 3)
-    itvtm   = linspace(dimmMin, dimmMax, (num_cnd/3)+1);
-    Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
-    Dimmvec = Dimmvec(Dimmvec >= itvtm(dcnd) & Dimmvec < itvtm(dcnd+1)); % possible stimulus change times for current condition
-
+		itvtm   = linspace(dimmMin, dimmMax, (num_cnd/3)+1);
+		Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
+		if(num_cnd > 3)
+			Dimmvec = Dimmvec(Dimmvec >= itvtm(dcnd) & Dimmvec < itvtm(dcnd+1)); % possible stimulus change times for current condition
+		end
+	
     cDimm   = Dimmvec(randi(length(Dimmvec)));  % stimulus change time used for the current trial
 end
 
@@ -188,22 +189,25 @@ reposition_object(JoyZero, Jpos0x, Jpos0y);  % correct for offsets of the joysti
 if(~isfield(TrialRecord, 'Jreleased'))
     TrialRecord.Jreleased = 1;   % track the joystick state across trials
 end
+	disp('start timing file');
 
 % check if lever remains released
-[JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, 100); % this introduces a 100 ms interval
+[JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, 100); % this introduces a 100 ms interval
 
 if(~JoyHold | TrialRecord.Jreleased == 0)
-    if(~JoyHold) % wait for release
 	disp('Wait for release');
+    if(~JoyHold) % wait for release
+	disp('is pressed');
         TrialRecord.Jreleased = 0;
-        [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, pull_pause);
+        [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyPullRad, pull_pause);
 
         if(JoyRel)
             eventmarker(39); % lever released
         end
 
     else % make sure that joystick is not pulled for a sufficient long time before starting a new trial
-        [JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, pull_pause);
+	disp('Wait for time out');
+        [JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, pull_pause);
 
         if(JoyHold)
             TrialRecord.Jreleased = 1;
@@ -255,7 +259,6 @@ if(on_track)
             % get the computer time for the lever release as well
             TPullEff = 1000 * toc(uint64(1));
 
-            TrialRecord.Jreleased = 0;
             ErrCode  = 5;
             on_track = 0;
             StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
@@ -281,7 +284,7 @@ if(on_track)
             TrialZero = FixOn;
         end
 
-        [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyRelRad, max_resp);
+        [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, max_resp);
         EndWaitResp = 1000 * toc(uint64(1));
 
         if(JoyHold)
@@ -292,8 +295,6 @@ if(on_track)
             eventmarker(38);  % lever pressed
 
             TPullEff = EndWaitResp;
-
-            TrialRecord.Jreleased = 0;
 
             if(PullTime < wait_resp)
                 ErrCode  = 5; % early response
@@ -339,6 +340,18 @@ if(on_track)
 
     % get the computer time for the trial end as well
     TrialRecord.Tend(TrialRecord.CurrentTrialNumber) = 1000 * toc(uint64(1));
+	
+	% try to wait if lever is not yet released to avoid time out
+	[JoyHold] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, 100); % this introduces a 100 ms interval
+	if(~JoyHold)
+		disp('Wait release');
+
+        [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyPullRad, pull_pause);
+        if(JoyRel)
+            eventmarker(39); % lever released
+			TrialRecord.Jreleased = 1;
+        end
+    end
 
 %%%%###########################################%%%%
 %%%%##########   Stop the Trial now   #########%%%%
@@ -351,18 +364,6 @@ if(on_track)
     else
         ITIeff = NaN;
     end
-
-    if(TrialRecord.Jreleased == 0)
-				disp('Wait release');
-
-        [JoyRel] = eyejoytrack('acquiretarget', JoyZero, JoyRelRad, wait_rel);
-        if(JoyRel)
-            eventmarker(39); % lever released
-            TrialRecord.Jreleased == 1;
-        end
-    end
-
-	disp(TrialRecord.Jreleased)
 	
     set_iti(cITI);
     TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cITI/1000;
@@ -395,3 +396,4 @@ if(on_track)
     end
 end
 
+	disp('end timing file');
