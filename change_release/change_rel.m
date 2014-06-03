@@ -31,9 +31,10 @@
 eventmarker(15);  %  start pre-trial
 
 %% Define Trial Variables
-tblpath = pwd;  % path to directory for trial table files
-cNHP   = 'I_34';      % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
-cPRDGM = 'change_release';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
+cdt   = datestr(now,'yyyy_mm_dd');
+tblpath = ['C:/Users/user/Desktop/Training_Data/I_34/', cdt];  % path to directory for trial table files
+cNHP   = 'I_34';      % MLConfig.SubjectName - MLConfig could not be accessed from the timing file
+cPRDGM = 'chng_rel';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
 editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
@@ -61,7 +62,7 @@ NoGoWait   = 1500;     % show the NoGo item for this amount of time
 % inter trial times (replace this with a more sophisticated function)
 minITI     =   500;    % minimum time period between two subsequent stimulus presentation
 maxITI     =  2500;    % maximum time period between two subsequent stimulus presentation
-ITIstep    =   10;
+ITIstep    =    10;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
@@ -77,7 +78,7 @@ wait_resp  =  100;     % valid response only accepted after this initial period
 max_resp   = 1500;     % maximal time accepted for a valid responses
 
 time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
+pull_pause = 3000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 
 %% Assign stimulus items
@@ -373,10 +374,14 @@ if(on_track)
     % keep redundant information to check data and have some information as back up to reconstruct trials
     % Further, this text file should give fast and easy access to the behavioural performance. It is in a
     % format that allows to be read into R with the read.table command (use 'header=TRUE' option).
-        cdt   = datestr(now,'yyyy_mm_dd');
+        
         tblnm = fullfile(tblpath, [cNHP,'_', cPRDGM,'_', cdt, '.dat']);
+		
+		if(~exist(tblpath,'dir'))
+			mkdir(tblpath);
+		end
 
-        if(exist(tblnm) ~= 2 )  % create the table file
+        if(~exist(tblnm,'file'))  % create the table file
             tblptr = fopen(tblnm, 'w');
 
             fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RT  StimOffTime  FixOff  RewEff  NumRew  TrialEnd  ITIeff  NextITI\n');
