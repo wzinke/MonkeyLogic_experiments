@@ -37,7 +37,7 @@ cNHP   = 'I_34';      % MLConfig.SubjectName - MLConfig could not be accessed fr
 cPRDGM = 'chng_rel';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', , 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
@@ -60,8 +60,8 @@ dimmStep   =   10;     % steps of possible dimming times
 NoGoWait   = 1500;     % show the NoGo item for this amount of time
 
 % inter trial times (replace this with a more sophisticated function)
-minITI     =   500;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  2500;    % maximum time period between two subsequent stimulus presentation
+minITI     =     1;    % minimum time period between two subsequent stimulus presentation
+maxITI     =  5000;    % maximum time period between two subsequent stimulus presentation
 ITIstep    =    10;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
@@ -73,12 +73,16 @@ cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uni
 %  min_range = exp(-(maxITI/mu));
 %  cITI = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
 
+BlockDur      =   6;   % Duration of a training block in minutes
+BlockBreakMin = 1.5;   % minimum break between two blocks in minutes
+BlockBreakMax =   3;   % maximum break between two blocks in minutes
+
 % joystick response parameters
-wait_resp  =  100;     % valid response only accepted after this initial period
-max_resp   = 1500;     % maximal time accepted for a valid responses
+wait_resp  =  150;     % valid response only accepted after this initial period
+max_resp   = 1000;     % maximal time accepted for a valid responses
 
 time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 5000;     % this is the minimum time passed before a trial starts after random lever presses
+pull_pause = 8000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 wait_late  = 1500;     % just wait to check if a late response occurs.
 %% Assign stimulus items
@@ -114,25 +118,7 @@ if(~isfield(TrialRecord, 'CorrCount'))
     TrialRecord.CorrCount = 0;
 end
 
-if(RewIncConsecutive == 1)
-   % increase reward for consecutive correct trials
-    RewInc2P = 1;   %   two pulses
-    RewInc3P = 2;   % three pulses
-    RewInc4P = 3;   %  four pulses
-    RewInc5P = 4;   %  five pulses (jackpot)
-
-    if(TrialRecord.CorrCount < RewInc2P-1)
-        rew_Npulse = 1;
-    elseif(TrialRecord.CorrCount < RewInc3P-1)
-        rew_Npulse = 2;
-    elseif(TrialRecord.CorrCount < RewInc4P-1)
-        rew_Npulse = 3;
-    elseif(TrialRecord.CorrCount < RewInc5P-1)
-        rew_Npulse = 4;
-    else
-        rew_Npulse = 5;
-    end
-else
+if(RewIncConsecutive == 0)
     cNumHit = sum(TrialRecord.TrialErrors == 0);
 
     % increase rewards after a defined number of trials was achieved
@@ -148,6 +134,24 @@ else
     elseif(cNumHit < RewInc4P)
         rew_Npulse = 3;
     elseif(cNumHit < RewInc5P)
+        rew_Npulse = 4;
+    else
+        rew_Npulse = 5;
+    end
+else
+   % increase reward for consecutive correct trials
+    RewInc2P = 1;   %   two pulses
+    RewInc3P = 2;   % three pulses
+    RewInc4P = 3;   %  four pulses
+    RewInc5P = 4;   %  five pulses (jackpot)
+
+    if(TrialRecord.CorrCount < RewInc2P-1)
+        rew_Npulse = 1;
+    elseif(TrialRecord.CorrCount < RewInc3P-1)
+        rew_Npulse = 2;
+    elseif(TrialRecord.CorrCount < RewInc4P-1)
+        rew_Npulse = 3;
+    elseif(TrialRecord.CorrCount < RewInc5P-1)
         rew_Npulse = 4;
     else
         rew_Npulse = 5;
@@ -193,6 +197,11 @@ if(~isfield(TrialRecord, 'Jreleased'))
     TrialRecord.Jreleased = 1;   % track the joystick state across trials
 end
 
+if(~isfield(TrialRecord, 'NoRespCnt'))
+    TrialRecord.NoRespCnt = 0;  % track the trials with no behavioural response
+    TrialRecord.ADDITI     = 0;  % Add extra wait time
+end
+
 disp('start timing file');
 
 % check if lever remains released
@@ -222,7 +231,7 @@ if(~JoyHold | TrialRecord.Jreleased == 0)
 
     TrialRecord.CorrCount = 0;
     trialerror(8);
-    set_iti(0);
+    cITI = 0;
 else
     on_track = 1;
     TrialRecord.Jreleased = 1;
@@ -307,6 +316,8 @@ if(on_track)
                 ErrCode  = 2;     % late response
                 TPullEff = EndWaitResp;
                 RelTime  = TPullEff - GoEff;
+            else
+                TrialRecord.NoRespCnt = TrialRecord.NoRespCnt + 1;
             end    
         else
             eventmarker(38);  % lever pressed
@@ -382,10 +393,34 @@ if(on_track)
     else
         ITIeff = NaN;
     end
+     
+    %% Determine ITI and check if the current Block needs to end with a pause
+    if(~isfield(TrialRecord, 'BlockEnd'))
+        TrialRecord.BlockEnd = toc(uint64(1)) + 60*BlockDur;  
+    end    
     
-    set_iti(cITI);
-    TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cITI/1000;
+    if(toc(uint64(1)) > TrialRecord.BlockEnd)
+        TrialRecord.NoRespCnt = 0;
+        breakvec = BlockBreakMin : 0.25 : BlockBreakMax; 
+        cbreak   = breakvec(randi(length(breakvec)))*60; 
 
+        cITI = cbreak*1000;
+        TrialRecord.BlockEnd = toc(uint64(1)) + 60*BlockDur + cbreak;  
+        TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cbreak*1000;
+        disp(['Break Block for ',num2str(cbreak/60,'%.2f'), ' min']);
+    else
+        if(TrialRecord.NoRespCnt > 0)
+            if(mod(TrialRecord.NoRespCnt,5) == 0 && TrialRecord.ADDITI < 45000)
+                TrialRecord.ADDITI = TrialRecord.ADDITI + 5000;
+            end
+            cITI = cITI + TrialRecord.ADDITI;
+        end
+        disp(['wait ITI ',int2str(cITI), ' ms']);
+    end
+    
+    TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cITI;
+    set_iti(cITI);
+   
     if(ErrCode ~= 8 && ErrCode ~= 9)
     %% write trial table
     % keep redundant information to check data and have some information as back up to reconstruct trials
@@ -417,4 +452,4 @@ if(on_track)
     end
 end
 
-    disp('end timing file');
+ disp('end timing file');
