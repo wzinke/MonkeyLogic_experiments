@@ -56,7 +56,7 @@ dimmStep   =   10;     % steps of possible dimming times
 % inter trial times (replace this with a more sophisticated function)
 minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
 maxITI     =  4000;    % maximum time period between two subsequent stimulus presentation
-ITIstep    =    10;
+ITIstep    =    50;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
@@ -78,7 +78,7 @@ wait_resp  =  150;     % valid response only accepted after this initial period
 max_resp   = 1000;     % maximal time accepted for a valid responses
 
 time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 8000;     % this is the minimum time passed before a trial starts after random lever presses
+pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 wait_late  = 1000;     % just wait to check if a late response occurs.
 %% Assign stimulus items
@@ -266,6 +266,7 @@ if(on_track)
         on_track = 0;
         StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
         StimOffEff  = 1000 * toc(uint64(1));
+        TrialRecord.CorrCount = 0;
         disp('Early release');
     end
 
@@ -284,6 +285,7 @@ if(on_track)
             on_track = 0;
             StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
             StimOffEff  = 1000 * toc(uint64(1));
+            TrialRecord.CorrCount = 0;
             
             % wait for possible late responses
             [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, wait_late);
@@ -381,19 +383,22 @@ if(on_track)
     
     if(toc(uint64(1)) > TrialRecord.BlockEnd)
         TrialRecord.NoRespCnt = 0;
-        breakvec = BlockBreakMin : 0.25 : BlockBreakMax; 
-        cbreak   = breakvec(randi(length(breakvec)))*60; 
+        breakvec = BlockBreakMin*60 : 10 : BlockBreakMax*60; % possible times for a break
+        cbreak   = breakvec(randi(length(breakvec)));        % current break time
 
         cITI = cbreak*1000;
         TrialRecord.BlockEnd = toc(uint64(1)) + 60*BlockDur + cbreak;  
         TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cbreak*1000;
         disp(['Break Block for ',num2str(cbreak/60,'%.2f'), ' min']);
     else
-        if(TrialRecord.NoRespCnt > 0)
+        if(TrialRecord.NoRespCnt > 0 && ErrCode == 1)
             if(mod(TrialRecord.NoRespCnt,5) == 0 && TrialRecord.ADDITI < 45000 && useAddITI == 1)
                 TrialRecord.ADDITI = TrialRecord.ADDITI + 5000;
             end
             cITI = cITI + TrialRecord.ADDITI;
+        else
+            TrialRecord.NoRespCnt = 0;
+            TrialRecord.ADDITI    = 0;
         end
         disp(['wait ITI ',int2str(cITI), ' ms']);
     end
