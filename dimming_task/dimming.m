@@ -1,4 +1,4 @@
-% change_release (timing script)
+% dimming (timing script)
 %
 % Initial timing file for teaching the NHP to use a joystick in order to get a reward.
 %
@@ -8,11 +8,6 @@
 %
 % This task utilizes two Stimuli. One of them signals the animal not to pull the joystick (NoGo Stimulus),
 % whereas the other stimulus (Go Stimulus) requires a pull.
-% The combination of both stimuli results in 3 task conditions:
-%     1: Go only   - Only one stimulus is shown and the joystick needs to be pulled to get a reward
-%     2: NoGo only - Only the NoGO stimulus is shown the animal has to withhold any responses to get a reward.
-%     3: NoGo/Go   - First, the NoGO stimulus is shown, and after a variable time interval changes to the Go stimulus.
-%                    The animal has to pull the joystick as response to the Go stimulus to receive a reward.
 %
 % The NoGo stimulus is shown for a random interval in the range of <dimmMin> and <dimmMax>.  The animal has to
 % pull the joystick within a time window between <wait_resp> and <max_resp> following the onset of the Go stimulus
@@ -34,10 +29,10 @@ eventmarker(15);  %  start pre-trial
 cdt   = datestr(now,'yyyy_mm_dd');
 tblpath = ['C:/Users/user/Desktop/Training_Data/I_34/', cdt];  % path to directory for trial table files
 cNHP   = 'I_34';      % MLConfig.SubjectName - MLConfig could not be accessed from the timing file
-cPRDGM = 'chng_rel';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
+cPRDGM = 'dimming';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'NoGoWait', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
@@ -49,23 +44,24 @@ rew_lag    =   100;    % introduce a brief delay prior reward
 RewIncConsecutive = 1; % increase reward for subsequent correct trials. Otherwise reward will increase with the number of hits
 
 % set centre position of joystick
-Jpos0x     =   0;      % zero position X
-Jpos0y     =   0;      % zero position Y
-JoyPullRad = 1.5;      % threshold to detect a elevation of the joystick
+Jpos0x     = -0.5;     % zero position X
+Jpos0y     =  0.5;     % zero position Y
+JoyPullRad =  1.0;     % threshold to detect a elevation of the joystick
 
 % dimming parameters
-dimmMin    =  500;     % minimum time to dimming
-dimmMax    = 1500;     % maximum time to dimming
+dimmMin    =  250;     % minimum time to dimming
+dimmMax    = 2000;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
-NoGoWait   = 1500;     % show the NoGo item for this amount of time
 
 % inter trial times (replace this with a more sophisticated function)
-minITI     =     1;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  5000;    % maximum time period between two subsequent stimulus presentation
-ITIstep    =    10;
+minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
+maxITI     =  4000;    % maximum time period between two subsequent stimulus presentation
+ITIstep    =    50;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
 cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uniform distribution)
+
+useAddITI = 0;
 
 % define ITI according to a shifted and truncated exponential distribution
 %  mu = (minITI + maxITI)/2
@@ -73,7 +69,7 @@ cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uni
 %  min_range = exp(-(maxITI/mu));
 %  cITI = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
 
-BlockDur      =   6;   % Duration of a training block in minutes
+BlockDur      =  12;   % Duration of a training block in minutes
 BlockBreakMin = 1.5;   % minimum break between two blocks in minutes
 BlockBreakMax =   3;   % maximum break between two blocks in minutes
 
@@ -82,9 +78,9 @@ wait_resp  =  150;     % valid response only accepted after this initial period
 max_resp   = 1000;     % maximal time accepted for a valid responses
 
 time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 8000;     % this is the minimum time passed before a trial starts after random lever presses
+pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
-wait_late  = 1500;     % just wait to check if a late response occurs.
+wait_late  = 1000;     % just wait to check if a late response occurs.
 %% Assign stimulus items
 % assign items specified in the condition file to meaningful names
 % numbers correspond to the number following TaskObject# in the condition file
@@ -99,6 +95,7 @@ TrialZero     = NaN;
 TRelEff       = NaN;
 FixOn         = NaN;
 FixOff        = NaN;
+FixOffEff     = NaN;
 PullTime      = NaN;
 TPullEff      = NaN;
 RelTime       = NaN;
@@ -140,10 +137,10 @@ if(RewIncConsecutive == 0)
     end
 else
    % increase reward for consecutive correct trials
-    RewInc2P = 1;   %   two pulses
-    RewInc3P = 2;   % three pulses
-    RewInc4P = 3;   %  four pulses
-    RewInc5P = 4;   %  five pulses (jackpot)
+    RewInc2P = 2;   %   two pulses
+    RewInc3P = 3;   % three pulses
+    RewInc4P = 4;   %  four pulses
+    RewInc5P = 5;   %  five pulses (jackpot)
 
     if(TrialRecord.CorrCount < RewInc2P-1)
         rew_Npulse = 1;
@@ -160,23 +157,14 @@ end
 
 % split the stimulus change/dimming times across conditions to allow for some control
 num_cnd = length(unique(TrialRecord.ConditionsThisBlock)); % This variable is behaving strange and not as I understand its role. The use of unique ensures that it shows the actual number of conditions used in this block!
-ccnd    = 1+mod(TrialRecord.CurrentCondition-1,3); % task conditions 1:3
-dcnd    =  ceil(TrialRecord.CurrentCondition/3);   % change duration block
+ccnd    = TrialRecord.CurrentCondition
 
-if(ccnd == 1) % The first conditions just shows the Go-Stimulus
-    cDimm = 0;
-%elseif(ccnd == 2)
-%    cDimm = NoGoWait;
-%elseif(ccnd == 3)
-else
-    itvtm   = linspace(dimmMin, dimmMax, (num_cnd/3)+1);
-    Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
-    if(num_cnd > 3)
-        Dimmvec = Dimmvec(Dimmvec >= itvtm(dcnd) & Dimmvec < itvtm(dcnd+1)); % possible stimulus change times for current condition
-    end
-    
-    cDimm   = Dimmvec(randi(length(Dimmvec)));  % stimulus change time used for the current trial
-end
+itvtm   = linspace(dimmMin, dimmMax, num_cnd+1);
+Dimmvec = dimmMin : dimmStep : dimmMax; % possible stimulus change times
+if(num_cnd > 1)
+    Dimmvec = Dimmvec(Dimmvec >= itvtm(ccnd) & Dimmvec < itvtm(ccnd+1)); % possible stimulus change times for current condition
+end   
+cDimm   = Dimmvec(randi(length(Dimmvec)));  % stimulus change time used for the current trial
 
 %  mu = (dimmMin + dimmMax)/2
 %  max_range = exp(-(dimmMin/mu));
@@ -199,7 +187,7 @@ end
 
 if(~isfield(TrialRecord, 'NoRespCnt'))
     TrialRecord.NoRespCnt = 0;  % track the trials with no behavioural response
-    TrialRecord.ADDITI     = 0;  % Add extra wait time
+    TrialRecord.ADDITI    = 0;  % Add extra wait time
 end
 
 disp('start timing file');
@@ -251,53 +239,43 @@ if(on_track)
         TrialRecord.NextTrial = -1;
     end
 
-    if(ccnd > 1) % The first conditions just shows the Go-Stimulus, so skip this condition here
 %% #### Onset NoGo Stimulus #### %%
-        disp('Start showing NoGo');
+    disp('Start showing NoGo');
 
-        NoGoOn = toggleobject(StimNoGo, 'EventMarker', [1, 35], 'Status', 'on');
+    NoGoOn = toggleobject(StimNoGo, 'EventMarker', [1, 35], 'Status', 'on');
 
-        % get the computer time for the trial start as well
-        NoGoEff = 1000 * toc(uint64(1));
-        TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = NoGoEff;
+    % get the computer time for the trial start as well
+    NoGoEff = 1000 * toc(uint64(1));
+    TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = NoGoEff;
 
-        FixOn     = NoGoOn;
-        TrialZero = NoGoOn;
+    FixOn     = NoGoOn;
+    TrialZero = NoGoOn;
 
 %% #### Wait for Change #### %%
-        [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, cDimm);  % wait before stim change (hope no time passed since onset)
-        EndWaitChng = 1000 * toc(uint64(1));
-        % do not accept early responses
-        if(~JoyHold)
-            eventmarker(38);  % lever pressed
+    [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, cDimm);  % wait before stim change (hope no time passed since onset)
+    EndWaitChng = 1000 * toc(uint64(1));
+    
+    % do not accept early responses
+    if(~JoyHold)
+        eventmarker(38);  % lever pressed
 
-            % get the computer time for the lever release as well
-            TPullEff = EndWaitChng;
+        % get the computer time for the lever release as well
+        TPullEff = EndWaitChng;
 
-            ErrCode  = 5;
-            on_track = 0;
-            StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
-        end
-    end  % if(ccnd > 1)
+        ErrCode  = 5;
+        on_track = 0;
+        StimOffTime = toggleobject(StimNoGo , 'EventMarker', 36,'Status', 'off');
+        StimOffEff  = 1000 * toc(uint64(1));
+        TrialRecord.CorrCount = 0;
+        disp('Early release');
+    end
 
 %% #### Onset Go Stimulus #### %%
     % wait for release of joystick
-    if(on_track & ccnd ~= 2) % skip the NoGo trial
-        if(ccnd == 3)
-            disp('Show Go Stimulus');
-            GoOn = toggleobject([StimNoGo StimGo], 'EventMarker', [37]);  % show Go stimulus
-            GoEff = 1000 * toc(uint64(1));
-        elseif(ccnd == 1)
-            disp('Show Go Stimulus only');
-            GoOn = toggleobject(StimGo , 'EventMarker', [37, 35, 1],'Status', 'on');
-            GoEff = 1000 * toc(uint64(1));
-
-            % get the computer time for the trial start as well
-            TrialRecord.Tstart(TrialRecord.CurrentTrialNumber) = GoEff;
-
-            FixOn     = GoOn;
-            TrialZero = FixOn;
-        end
+    if(on_track) 
+        disp('Show Go Stimulus');
+        GoOn = toggleobject([StimNoGo StimGo], 'EventMarker', [37]);  % show Go stimulus
+        GoEff = 1000 * toc(uint64(1));
 
         [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, max_resp);
         EndWaitResp = 1000 * toc(uint64(1));
@@ -306,6 +284,8 @@ if(on_track)
             ErrCode  = 1; % no response
             on_track = 0;
             StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
+            StimOffEff  = 1000 * toc(uint64(1));
+            TrialRecord.CorrCount = 0;
             
             % wait for possible late responses
             [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, wait_late);
@@ -316,6 +296,7 @@ if(on_track)
                 ErrCode  = 2;     % late response
                 TPullEff = EndWaitResp;
                 RelTime  = TPullEff - GoEff;
+                TrialRecord.NoRespCnt = 0;
             else
                 TrialRecord.NoRespCnt = TrialRecord.NoRespCnt + 1;
             end    
@@ -324,16 +305,19 @@ if(on_track)
 
             TPullEff = EndWaitResp;
             RelTime  = TPullEff - GoEff;
-
+            
+            TrialRecord.NoRespCnt = 0;   
+            
             if(PullTime < wait_resp)
                 ErrCode  = 5; % early response
                 on_track = 0;
                 StimOffTime = toggleobject(StimGo , 'EventMarker', 36,'Status', 'off');
+                StimOffEff  = 1000 * toc(uint64(1));
             else
                 rt = RelTime; % double check this one (use text table and compare to 
             end
         end  % if(JoyHold)
-    end  % if(on_track & ccnd ~= 2)
+    end  %  if(on_track)
 
 %% #### Trial End #### %%
    eventmarker([2 17]);  % end of trial
@@ -348,14 +332,11 @@ if(on_track)
         eventmarker(19);   % start pause
         idle(rew_lag);
 
-        if(ccnd == 2)
-            StimOffTime = toggleobject(StimNoGo, 'EventMarker', 36,'Status', 'off');
-        else
-            StimOffTime = toggleobject([StimNoGo, StimGo], 'EventMarker', 36,'Status', 'off');
-        end
+        StimOffTime = toggleobject(StimGo, 'EventMarker', 36,'Status', 'off');
+        StimOffEff = 1000 * toc(uint64(1));
         eventmarker([96 20]);
 
-        RewEff = 1000 * toc(uint64(1));
+        RewEff = StimOffEff;
         goodmonkey(rew_dur, 'NumReward', rew_Npulse, 'PauseTime', rew_gap);
         eventmarker(96); % use this event twice to get an estimate of the reward duration, i.e. number of pulses.
     else   % error occurred
@@ -366,7 +347,8 @@ if(on_track)
     end  %  if(on_track)
 
     FixOff = StimOffTime - TrialZero;
-
+    FixOffEff = StimOffEff -NoGoEff;
+    
     % get the computer time for the trial end as well
     TrialRecord.Tend(TrialRecord.CurrentTrialNumber) = 1000 * toc(uint64(1));
     
@@ -401,19 +383,22 @@ if(on_track)
     
     if(toc(uint64(1)) > TrialRecord.BlockEnd)
         TrialRecord.NoRespCnt = 0;
-        breakvec = BlockBreakMin : 0.25 : BlockBreakMax; 
-        cbreak   = breakvec(randi(length(breakvec)))*60; 
+        breakvec = BlockBreakMin*60 : 10 : BlockBreakMax*60; % possible times for a break
+        cbreak   = breakvec(randi(length(breakvec)));        % current break time
 
         cITI = cbreak*1000;
         TrialRecord.BlockEnd = toc(uint64(1)) + 60*BlockDur + cbreak;  
         TrialRecord.NextTrial = TrialRecord.Tend(TrialRecord.CurrentTrialNumber) + cbreak*1000;
         disp(['Break Block for ',num2str(cbreak/60,'%.2f'), ' min']);
     else
-        if(TrialRecord.NoRespCnt > 0)
-            if(mod(TrialRecord.NoRespCnt,5) == 0 && TrialRecord.ADDITI < 45000)
+        if(TrialRecord.NoRespCnt > 0 && ErrCode == 1)
+            if(mod(TrialRecord.NoRespCnt,5) == 0 && TrialRecord.ADDITI < 45000 && useAddITI == 1)
                 TrialRecord.ADDITI = TrialRecord.ADDITI + 5000;
             end
             cITI = cITI + TrialRecord.ADDITI;
+        else
+            TrialRecord.NoRespCnt = 0;
+            TrialRecord.ADDITI    = 0;
         end
         disp(['wait ITI ',int2str(cITI), ' ms']);
     end
@@ -436,20 +421,20 @@ if(on_track)
         if(~exist(tblnm,'file'))  % create the table file
             tblptr = fopen(tblnm, 'w');
 
-            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
+            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  FixOffEff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
         else
             tblptr = fopen(tblnm, 'a');
         end
 
         fprintf(tblptr, ...
-            '%s  %s  %s  %6d  %4d  %4d  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
+            '%s  %s  %s  %6d  %4d  %4d  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
             cdt, cNHP, cPRDGM, TrialRecord.CurrentTrialNumber, TrialRecord.CurrentBlock, ...
             ccnd, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), TrialZero, ...
-            FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, StimOffTime, FixOff, RewEff, ...
+            FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, StimOffTime, FixOff, FixOffEff, RewEff, ...
             rew_Npulse, TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, cITI, JoyPullRad);
 
         fclose(tblptr);
     end
-end
+end  % if(on_track)  %% main
 
- disp('end timing file');
+disp('end timing file');
