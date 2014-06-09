@@ -50,7 +50,7 @@ JoyPullRad =  1.0;     % threshold to detect a elevation of the joystick
 
 % dimming parameters
 dimmMin    =  250;     % minimum time to dimming
-dimmMax    = 2000;     % maximum time to dimming
+dimmMax    = 2500;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
 
 % inter trial times (replace this with a more sophisticated function)
@@ -75,7 +75,7 @@ BlockBreakMax =   3;   % maximum break between two blocks in minutes
 
 % joystick response parameters
 wait_resp  =  150;     % valid response only accepted after this initial period
-max_resp   = 1000;     % maximal time accepted for a valid responses
+max_resp   = 1250;     % maximal time accepted for a valid responses
 
 time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
 pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
