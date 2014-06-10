@@ -28,11 +28,11 @@ eventmarker(15);  %  start pre-trial
 %% Define Trial Variables
 cdt   = datestr(now,'yyyy_mm_dd');
 tblpath = ['C:/Users/user/Desktop/Training_Data/I_34/', cdt];  % path to directory for trial table files
-cNHP   = 'I_34';      % MLConfig.SubjectName - MLConfig could not be accessed from the timing file
-cPRDGM = 'dimming';  % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
+cNHP   = 'I_34';      % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
+cPRDGM = 'dimming';   % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
@@ -41,7 +41,7 @@ rng('shuffle', 'twister');
 rew_dur    =    50;    % duration of reward pulse (not to be changed!)
 rew_gap    =   200;    % gap between two reward pulses (period = rew_dur+rew_gap) (not to be changed!)
 rew_lag    =   100;    % introduce a brief delay prior reward
-RewIncConsecutive = 1; % increase reward for subsequent correct trials. Otherwise reward will increase with the number of hits
+RewIncCons =     1;    % increase reward for subsequent correct trials. Otherwise reward will increase with the number of hits
 
 % set centre position of joystick
 Jpos0x     = -0.5;     % zero position X
@@ -49,13 +49,21 @@ Jpos0y     =  0.5;     % zero position Y
 JoyPullRad =  1.0;     % threshold to detect a elevation of the joystick
 
 % dimming parameters
-dimmMin    =  250;     % minimum time to dimming
-dimmMax    = 2500;     % maximum time to dimming
+dimmMin    =  750;     % minimum time to dimming
+dimmMax    = 2000;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
+
+FixGrid    =    9;     % number of possible locations for the dimming item. <1> means only presented in center,
+                       % other options are <5> and <9>
+LocRep     =    4;     % how many trials are shown per location in a Block
+AccAll     =    0;     % accept all results, i.e. hit/early/late to complete current trial.
+                       % If 0, only correct trials will be accepted
+FixStep    =    4;     % y and x distance of possible item locations
+ForceLoc   =    0;     % if this number is between 1:9 it forces the stimulus location to that position
 
 % inter trial times (replace this with a more sophisticated function)
 minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  4000;    % maximum time period between two subsequent stimulus presentation
+maxITI     =  3000;    % maximum time period between two subsequent stimulus presentation
 ITIstep    =    50;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
@@ -77,7 +85,7 @@ BlockBreakMax =   3;   % maximum break between two blocks in minutes
 wait_resp  =  150;     % valid response only accepted after this initial period
 max_resp   = 1250;     % maximal time accepted for a valid responses
 
-time_out   =    0;     % set wait period for bad monkeys (do not combine with jittered ITIs)
+time_out   = 5000;     % set wait period for bad monkeys (do not combine with jittered ITIs)
 pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 wait_late  = 1000;     % just wait to check if a late response occurs.
@@ -115,7 +123,7 @@ if(~isfield(TrialRecord, 'CorrCount'))
     TrialRecord.CorrCount = 0;
 end
 
-if(RewIncConsecutive == 0)
+if(RewIncCons == 0)
     cNumHit = sum(TrialRecord.TrialErrors == 0);
 
     % increase rewards after a defined number of trials was achieved
@@ -155,6 +163,7 @@ else
     end
 end
 
+%% determine time interval before dimming should occur
 % split the stimulus change/dimming times across conditions to allow for some control
 num_cnd = length(unique(TrialRecord.ConditionsThisBlock)); % This variable is behaving strange and not as I understand its role. The use of unique ensures that it shows the actual number of conditions used in this block!
 ccnd    = TrialRecord.CurrentCondition
@@ -170,6 +179,61 @@ cDimm   = Dimmvec(randi(length(Dimmvec)));  % stimulus change time used for the 
 %  max_range = exp(-(dimmMin/mu));
 %  min_range = exp(-(dimmMax/mu));
 %  R = dimmStep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / dimmStep);
+
+%% determine stimulus location
+% location indices and labels
+%  6  4  7   |   Tl  Tc  Tr
+%  2  1  3   |   Ml  Mc  Mr
+%  8  5  9   |   Bl  Bc  Br
+
+if(~isfield(TrialRecord, 'LocVec'))
+    TrialRecord.LocVec = [];   % track the joystick state across trials
+end
+
+if(FixGrid > 1 && ForceLoc == 0)
+    if(isempty(TrialRecord.LocVec))
+        TrialRecord.LocVec = repmat(1:FixGrid,1,LocRep);
+    end
+
+    TrialRecord.LocVec = TrialRecord.LocVec(randperm(length(TrialRecord.LocVec));  % shuffle all possible locations
+
+    cLoc = TrialRecord.LocVec(1);
+elseif(ForceLoc > 0)
+    cLoc = ForceLoc;
+else
+    cLoc = 1;
+end
+
+LocLbl = '--';
+% get x coordinate
+switch cLoc
+    case {6,2,8}
+        LocLbl(2) = 'l'
+        StimX = -1 * FixStep;
+    case {4,1,5}
+        LocLbl(2) = 'c'
+        StimX = 0;
+    case {7,3,9}
+        LocLbl(2) = 'r'
+        StimX = FixStep;
+end
+
+% get y coordinate
+switch cLoc
+    case {6,4,7}
+        LocLbl(1) = 'T'
+        StimY = FixStep;
+    case {2,1,3}
+        LocLbl(1) = 'M'
+        StimY = 0;
+    case {8,5,9}
+        LocLbl(1) = 'B'
+        StimY = -1 * FixStep;
+end
+
+% move stimulus items to current location
+reposition_object(StimGo,   StimX, StimY);
+reposition_object(StimNoGo, StimX, StimY);
 
 %%%%###########################################%%%%
 %%%%########  Ensure joystick release   #######%%%%
@@ -347,8 +411,17 @@ if(on_track)
         cITI = cITI + time_out;   % add a time-out to the current ITI
     end  %  if(on_track)
 
-    FixOff = StimOffTime - TrialZero;
-    FixOffEff = StimOffEff -NoGoEff;
+    FixOff    = StimOffTime - TrialZero;
+    FixOffEff = StimOffEff  - NoGoEff;
+
+    % delete current stimulus location from list if completed
+    if(ErrCode ~= 8 && ErrCode ~= 9 && FixGrid > 1 && ForceLoc == 0)
+        if(AccAll == 0 && on_track == 1)
+            TrialRecord.LocVec(1) = [];
+        elseif(AccAll == 1)
+            TrialRecord.LocVec(1) = [];
+        end
+    end
 
     % get the computer time for the trial end as well
     TrialRecord.Tend(TrialRecord.CurrentTrialNumber) = 1000 * toc(uint64(1));
@@ -424,17 +497,18 @@ if(on_track)
         if(~exist(tblnm,'file'))  % create the table file
             tblptr = fopen(tblnm, 'w');
 
-            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  FixOffEff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
+            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  StimLoc  StimX  StimY  LocLbl  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  FixOffEff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
         else
             tblptr = fopen(tblnm, 'a');
         end
 
         fprintf(tblptr, ...
-            '%s  %s  %s  %6d  %4d  %4d  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
-            cdt, cNHP, cPRDGM, TrialRecord.CurrentTrialNumber, TrialRecord.CurrentBlock, ...
-            ccnd, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), TrialZero, ...
-            FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, StimOffTime, FixOff, FixOffEff, RewEff, ...
-            rew_Npulse, TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, cITI, JoyPullRad);
+            '%s  %s  %s  %6d  %4d  %4d  %d  %.4f  %.4f  %s  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
+            cdt, cNHP, cPRDGM, TrialRecord.CurrentTrialNumber, TrialRecord.CurrentBlock, ccnd, ...
+            StimLoc, StimX, StimY, LocLbl, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), ...
+            TrialZero,FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, ...
+            StimOffTime, FixOff, FixOffEff, RewEff, rew_Npulse, ...
+            TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, cITI, JoyPullRad);
 
         fclose(tblptr);
     end
