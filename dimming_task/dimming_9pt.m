@@ -46,19 +46,20 @@ RewIncCons =     1;    % increase reward for subsequent correct trials. Otherwis
 % set centre position of joystick
 Jpos0x     = -0.5;     % zero position X
 Jpos0y     =  0.5;     % zero position Y
-JoyPullRad =  1.0;     % threshold to detect a elevation of the joystick
+JoyPullRad =  0.75;    % threshold to detect a elevation of the joystick
 
 % dimming parameters
 dimmMin    =  750;     % minimum time to dimming
-dimmMax    = 2000;     % maximum time to dimming
+dimmMax    = 2250;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
 
-FixGrid    =    9;     % number of possible locations for the dimming item. <1> means only presented in center,
+% stimulus position parameters
+FixGrid    =    9;     % number of possible locations for the dimming item. <1> means only presented in centre
                        % other options are <5> and <9>
-LocRep     =    4;     % how many trials are shown per location in a Block
+LocRep     =    2;     % how many trials are shown per location in a Block
 AccAll     =    0;     % accept all results, i.e. hit/early/late to complete current trial.
                        % If 0, only correct trials will be accepted
-FixStep    =    4;     % y and x distance of possible item locations
+FixStep    =    5;     % y and x distance of possible item locations
 ForceLoc   =    0;     % if this number is between 1:9 it forces the stimulus location to that position
 
 % inter trial times (replace this with a more sophisticated function)
@@ -83,10 +84,10 @@ BlockBreakMax =   3;   % maximum break between two blocks in minutes
 
 % joystick response parameters
 wait_resp  =  150;     % valid response only accepted after this initial period
-max_resp   = 1250;     % maximal time accepted for a valid responses
+max_resp   = 1500;     % maximal time accepted for a valid responses
 
-time_out   = 5000;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
+time_out   = 2500;     % set wait period for bad monkeys (do not combine with jittered ITIs)
+pull_pause = 5000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 wait_late  = 1000;     % just wait to check if a late response occurs.
 %% Assign stimulus items
@@ -195,7 +196,7 @@ if(FixGrid > 1 && ForceLoc == 0)
         TrialRecord.LocVec = repmat(1:FixGrid,1,LocRep);
     end
 
-    TrialRecord.LocVec = TrialRecord.LocVec(randperm(length(TrialRecord.LocVec));  % shuffle all possible locations
+    TrialRecord.LocVec = TrialRecord.LocVec(randperm(length(TrialRecord.LocVec)));  % shuffle all possible locations
 
     cLoc = TrialRecord.LocVec(1);
 elseif(ForceLoc > 0)
@@ -316,7 +317,7 @@ if(on_track)
     TrialZero = NoGoOn;
 
 %% #### Wait for Change #### %%
-    disp(['Wait for dimming in',int2str(cDimm),' ms']);
+    disp(['Wait for dimming in ',int2str(cDimm),' ms']);
     [JoyHold PullTime] = eyejoytrack('holdtarget', JoyZero, JoyPullRad, cDimm);  % wait before stim change (hope no time passed since onset)
     EndWaitChng = 1000 * toc(uint64(1));
 
@@ -505,7 +506,7 @@ if(on_track)
         fprintf(tblptr, ...
             '%s  %s  %s  %6d  %4d  %4d  %d  %.4f  %.4f  %s  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
             cdt, cNHP, cPRDGM, TrialRecord.CurrentTrialNumber, TrialRecord.CurrentBlock, ccnd, ...
-            StimLoc, StimX, StimY, LocLbl, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), ...
+            cLoc, StimX, StimY, LocLbl, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), ...
             TrialZero,FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, ...
             StimOffTime, FixOff, FixOffEff, RewEff, rew_Npulse, ...
             TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, cITI, JoyPullRad);
