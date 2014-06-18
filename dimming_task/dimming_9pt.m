@@ -49,13 +49,13 @@ Jpos0y     =  0.5;     % zero position Y
 JoyPullRad =  0.5;    % threshold to detect a elevation of the joystick
 
 % dimming parameters
-dimmMin    =  750;     % minimum time to dimming
-dimmMax    = 2000;     % maximum time to dimming
+dimmMin    = 1000;     % minimum time to dimming
+dimmMax    = 2500;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
 
-NGsqrcol   = 0.40;     % grey value for pre-dimm item
-Gsqrcol    = 0.85;     % grey value for post-dimm item
-sqrsz      =  1.5;     % stimulus size (square)
+NGsqrcol   = 0.80;     % grey value for pre-dimm item
+Gsqrcol    = 0.50;     % grey value for post-dimm item
+sqrsz      =    1;     % stimulus size (square)
 
 TrialRecord.sqrszsize = sqrsz;
 TrialRecord.NGsqrcol  = NGsqrcol;
@@ -73,7 +73,7 @@ ForceLoc   =    0;     % if this number is between 1:9 it forces the stimulus lo
 
 % inter trial times (replace this with a more sophisticated function)
 minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  3000;    % maximum time period between two subsequent stimulus presentation
+maxITI     =  3500;    % maximum time period between two subsequent stimulus presentation
 ITIstep    =    50;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
