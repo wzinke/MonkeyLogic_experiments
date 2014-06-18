@@ -32,7 +32,7 @@ cNHP   = 'I_34';      % MLConfig.SubjectName    - MLConfig could not be accessed
 cPRDGM = 'dimming';   % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
 % set editable variables
-editable('FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'Jpos0x', 'Jpos0y', 'JoyPullRad', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad','FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'sqrsz', 'NGsqrcol', 'Gsqrcol', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 % initialize the random number generator
 rng('shuffle', 'twister');
@@ -46,12 +46,20 @@ RewIncCons =     1;    % increase reward for subsequent correct trials. Otherwis
 % set centre position of joystick
 Jpos0x     = -0.5;     % zero position X
 Jpos0y     =  0.5;     % zero position Y
-JoyPullRad =  0.75;    % threshold to detect a elevation of the joystick
+JoyPullRad =  0.5;    % threshold to detect a elevation of the joystick
 
 % dimming parameters
 dimmMin    =  750;     % minimum time to dimming
-dimmMax    = 2250;     % maximum time to dimming
+dimmMax    = 2000;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
+
+NGsqrcol   = 0.40;     % grey value for pre-dimm item
+Gsqrcol    = 0.85;     % grey value for post-dimm item
+sqrsz      =  1.5;     % stimulus size (square)
+
+TrialRecord.sqrszsize = sqrsz;
+TrialRecord.NGsqrcol  = NGsqrcol;
+TrialRecord.Gsqrcol   = Gsqrcol;
 
 % stimulus position parameters
 FixGrid    =    9;     % number of possible locations for the dimming item. <1> means only presented in centre
@@ -61,6 +69,7 @@ AccAll     =    0;     % accept all results, i.e. hit/early/late to complete cur
                        % If 0, only correct trials will be accepted
 FixStep    =    5;     % y and x distance of possible item locations
 ForceLoc   =    0;     % if this number is between 1:9 it forces the stimulus location to that position
+
 
 % inter trial times (replace this with a more sophisticated function)
 minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
@@ -498,16 +507,17 @@ if(on_track)
         if(~exist(tblnm,'file'))  % create the table file
             tblptr = fopen(tblnm, 'w');
 
-            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  StimLoc  StimX  StimY  LocLbl  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  FixOffEff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
+            fprintf(tblptr,'Date  Subject  Experiment  TrialNo  BlockNo  CondNo  StimLoc  StimX  StimY  StimSize  PreDimmGrey  PostDimmGrey  LocLbl  Result  TrialStart  TrialZero  FixOn  NoGoOn  GoOn  NoGoEff  GoEff  ChangeIntent  PullTime  TPullEff  RelTime  RT  StimOffTime  FixOff  FixOffEff  RewEff  NumRew  TrialEnd  ITIeff  NextITI  JoyPullRad\n');
         else
             tblptr = fopen(tblnm, 'a');
         end
 
         fprintf(tblptr, ...
-            '%s  %s  %s  %6d  %4d  %4d  %d  %.4f  %.4f  %s  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
+            '%s  %s  %s  %6d  %4d  %4d  %d  %.4f  %.4f  %.4f  %.4f  %.4f  %s  %4d  %.4f  %6d  %6d  %6d  %6d  %.4f  %.4f  %6d  %6d  %.4f  %.4f  %.4f  %6d  %6d   %.4f  %.4f  %4d  %.4f  %.4f  %6d   %.4f\n', ...
             cdt, cNHP, cPRDGM, TrialRecord.CurrentTrialNumber, TrialRecord.CurrentBlock, ccnd, ...
-            cLoc, StimX, StimY, LocLbl, ErrCode, TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), ...
-            TrialZero,FixOn, NoGoOn, GoOn, NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, ...
+            cLoc, StimX, StimY, sqrsz, NGsqrcol, Gsqrcol, LocLbl, ErrCode, ...
+            TrialRecord.Tstart(TrialRecord.CurrentTrialNumber), TrialZero,FixOn, NoGoOn, GoOn, ...
+            NoGoEff, GoEff, cDimm, PullTime, TPullEff, RelTime, rt, ...
             StimOffTime, FixOff, FixOffEff, RewEff, rew_Npulse, ...
             TrialRecord.Tend(TrialRecord.CurrentTrialNumber), ITIeff, cITI, JoyPullRad);
 
