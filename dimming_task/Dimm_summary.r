@@ -69,7 +69,7 @@ for(i in seq(length(dimmitv)-1)){
 
 
 ### start plots
-x11(width=12, height=8, pointsize=16)
+x11(width=12, height=10, pointsize=16)
 
 #layout(matrix(c(1, 3, 7, 9, 2, 4, 7, 10, 5, 5, 5, 11, 6, 6, 6, 12, 8, 8, 8, 13), 5, 4, byrow = TRUE))
 layout(matrix(c(1, 3, 7,  2, 4, 7, 5, 5, 5, 6, 6, 6, 8, 8, 8), 5, 3, byrow = TRUE))
