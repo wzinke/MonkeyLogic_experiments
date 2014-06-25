@@ -71,7 +71,8 @@ for(i in seq(length(dimmitv)-1)){
 ### start plots
 x11(width=12, height=8, pointsize=16)
 
-layout(matrix(c(1, 3, 7, 2, 4, 7, 5, 5, 5, 6, 6, 6), 4, 3, byrow = TRUE))
+#layout(matrix(c(1, 3, 7, 9, 2, 4, 7, 10, 5, 5, 5, 11, 6, 6, 6, 12, 8, 8, 8, 13), 5, 4, byrow = TRUE))
+layout(matrix(c(1, 3, 7,  2, 4, 7, 5, 5, 5, 6, 6, 6, 8, 8, 8), 5, 3, byrow = TRUE))
 par(mar = c(2.5, 2.5, 1.5, 0.5))
 par(mgp = c(1.5, 0.5, 0))
 par(oma = c(0, 0, 3, 0))
@@ -112,7 +113,7 @@ barplot(100 * prop.table(table(resnm[resppos], DimmCnd[resppos]), margin=2), bes
 
 ### session time course of release times 
 rngX = range(sesstime[resppos], na.rm=TRUE)
-rngY = range(reltime[resppos], na.rm=TRUE)
+rngY = range(reltime[resppos],  na.rm=TRUE)
 
 plot(sesstime[hitpos], reltime[hitpos], type='p', pch=20, ylab='release time [ms]', xlab='session time [min]', main='Release times', col='red', xaxs='i', yaxs='i', xlim=rngX, ylim=rngY)
 
@@ -132,6 +133,35 @@ points(dt$ChangeIntent[earlypos], reltime[earlypos], pch=20, col='green')
 points(dt$ChangeIntent[latepos], reltime[latepos], pch=20, col='blue')
 
 abline(a=0, b=1, , lty=3, lwd=2)
+
+# performance
+rngX = range(sesstime[resppos], na.rm=TRUE)
+
+tpos = hitpos + earlypos + latepos
+
+winwd = 5;
+avrgvec = seq(winwd/2,max(sesstime)-winwd/2,by=0.5)
+
+lateperf = earlyperf = hitperf = rep(0,length(avrgvec))
+
+for(i in 1:length(avrgvec)){
+    ctm = avrgvec[i]
+    cpos = sesstime > ctm-winwd/2 & sesstime < ctm+winwd/2
+
+    tcnt = sum(tpos[cpos])
+    if(tcnt>0){
+        hitperf[i] = 100 * (sum(hitpos[cpos])/tcnt)
+        lateperf[i] = 100 * (sum(latepos[cpos])/tcnt)
+        earlyperf[i] = 100 * (sum(earlypos[cpos])/tcnt) 
+    }
+}
+
+plot(avrgvec,hitperf, col='red',xaxs='i', yaxs='i', xlim=rngX, ylim=c(0,100), type='l',lwd=2.5, ylab='performance [%]', xlab='session time [min]')
+lines(avrgvec,earlyperf,col='green',lwd=1.5)
+lines(avrgvec,lateperf,col='blue',lwd=1.5)
+abline(h=50,lty=1)
+abline(h=c(25,75),lty=2)
+
 
 ### figure title
 mtext(paste(dt$Subject[1], " - Performance Summary from ", dt$Date[1], sep=''), outer = TRUE, side = 3, cex = 1.2, line = 1)
