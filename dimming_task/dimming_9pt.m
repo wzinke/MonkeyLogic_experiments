@@ -31,9 +31,6 @@ tblpath = ['C:/Users/user/Desktop/Training_Data/I_34/', cdt];  % path to directo
 cNHP   = 'I_34';      % MLConfig.SubjectName    - MLConfig could not be accessed from the timing file
 cPRDGM = 'dimming';   % MLConfig.ExperimentName - MLConfig could not be accessed from the timing file
 
-% set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad','FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'sqrsz', 'NGsqrcol', 'Gsqrcol', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'minITI', 'maxITI', 'ITIstep', 'BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'useAddITI', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
-
 % initialize the random number generator
 rng('shuffle', 'twister');
 
@@ -49,13 +46,14 @@ Jpos0y     =  0.5;     % zero position Y
 JoyPullRad =  0.5;    % threshold to detect a elevation of the joystick
 
 % dimming parameters
-dimmMin    = 1000;     % minimum time to dimming
+dimmMin    =  750;     % minimum time to dimming
 dimmMax    = 2500;     % maximum time to dimming
 dimmStep   =   10;     % steps of possible dimming times
+dimmTime   =  750;     % How long to dim (Not used yet)
 
-NGsqrcol   = 0.80;     % grey value for pre-dimm item
-Gsqrcol    = 0.50;     % grey value for post-dimm item
-sqrsz      =    1;     % stimulus size (square)
+NGsqrcol   = 0.80;     % grey value for pre-dim item
+Gsqrcol    = 0.60;     % grey value for post-dim item
+sqrsz      = 0.50;     % stimulus size (square)
 
 TrialRecord.sqrszsize = sqrsz;
 TrialRecord.NGsqrcol  = NGsqrcol;
@@ -70,10 +68,9 @@ AccAll     =    0;     % accept all results, i.e. hit/early/late to complete cur
 FixStep    =    5;     % y and x distance of possible item locations
 ForceLoc   =    0;     % if this number is between 1:9 it forces the stimulus location to that position
 
-
 % inter trial times (replace this with a more sophisticated function)
 minITI     =  1000;    % minimum time period between two subsequent stimulus presentation
-maxITI     =  3500;    % maximum time period between two subsequent stimulus presentation
+maxITI     =  2500;    % maximum time period between two subsequent stimulus presentation
 ITIstep    =    50;
 
 ITIvec  = minITI : ITIstep : maxITI;     % possible ITI's
@@ -82,10 +79,10 @@ cITI    = ITIvec(randi(length(ITIvec))); % ITI used after the current trial (uni
 useAddITI = 0;
 
 % define ITI according to a shifted and truncated exponential distribution
-%  mu = (minITI + maxITI)/2
-%  max_range = exp(-(minITI/mu));
-%  min_range = exp(-(maxITI/mu));
-%  cITI = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
+% mu = (minITI + maxITI)/2
+% max_range = exp(-(minITI/mu));
+% min_range = exp(-(maxITI/mu));
+% cITI = ITIstep * round( (-mu*reallog((max_range-min_range)*rand(1,1)+min_range)) / ITIstep);
 
 BlockDur      =  12;   % Duration of a training block in minutes
 BlockBreakMin = 1.5;   % minimum break between two blocks in minutes
@@ -95,8 +92,8 @@ BlockBreakMax =   3;   % maximum break between two blocks in minutes
 wait_resp  =  150;     % valid response only accepted after this initial period
 max_resp   = 1500;     % maximal time accepted for a valid responses
 
-time_out   = 2500;     % set wait period for bad monkeys (do not combine with jittered ITIs)
-pull_pause = 5000;     % this is the minimum time passed before a trial starts after random lever presses
+time_out   = 4000;     % set wait period for bad monkeys (do not combine with jittered ITIs)
+pull_pause = 6000;     % this is the minimum time passed before a trial starts after random lever presses
 wait_rel   = 1000;     % wait for release of joystick after response
 wait_late  = 1000;     % just wait to check if a late response occurs.
 %% Assign stimulus items
@@ -105,6 +102,9 @@ wait_late  = 1000;     % just wait to check if a late response occurs.
 JoyZero  =  1;         % this might be a simple trick to lock the joystick to a zero position by using a Fixation object
 StimGo   =  2;         % stimulus that requires a response
 StimNoGo =  3;         % stimulus that indicates no response
+
+% set editable variables
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad','BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'minITI', 'maxITI', 'ITIstep',  'useAddITI','FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'sqrsz', 'NGsqrcol', 'Gsqrcol', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 %% initialize trial variables
 on_track      =   0;  % use this flag to indicate occurrences of errors in the trial
