@@ -25,6 +25,9 @@
 
 eventmarker(15);  %  start pre-trial
 
+% set editable variables
+editable('Jpos0x', 'Jpos0y', 'JoyPullRad','BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'minITI', 'maxITI', 'ITIstep',  'useAddITI','FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'sqrsz', 'NGsqrcol', 'Gsqrcol', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
+
 %% Define Trial Variables
 cdt   = datestr(now,'yyyy_mm_dd');
 tblpath = ['C:/Users/user/Desktop/Training_Data/I_34/', cdt];  % path to directory for trial table files
@@ -103,8 +106,6 @@ JoyZero  =  1;         % this might be a simple trick to lock the joystick to a 
 StimGo   =  2;         % stimulus that requires a response
 StimNoGo =  3;         % stimulus that indicates no response
 
-% set editable variables
-editable('Jpos0x', 'Jpos0y', 'JoyPullRad','BlockDur', 'BlockBreakMin', 'BlockBreakMax', 'minITI', 'maxITI', 'ITIstep',  'useAddITI','FixGrid', 'ForceLoc', 'LocRep', 'AccAll', 'FixStep', 'sqrsz', 'NGsqrcol', 'Gsqrcol', 'dimmMin', 'dimmMax', 'dimmStep', 'wait_resp', 'max_resp', 'wait_late', 'wait_rel', 'time_out', 'pull_pause', 'RewInc2P', 'RewInc3P', 'RewInc4P', 'RewInc5P');
 
 %% initialize trial variables
 on_track      =   0;  % use this flag to indicate occurrences of errors in the trial
